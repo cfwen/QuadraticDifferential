@@ -74,6 +74,7 @@ public:
 
 protected:
     int embedLocal(CVertex * v);
+    CPoint2 embedVertex3(CPoint2 & p1, CPoint2 & p2, double l13, double l23);
 
 private:
     CMesh * mesh;

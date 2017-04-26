@@ -1,4 +1,5 @@
 #include "QuadraticDifferential.h"
+#include "unsupported/Eigen/ArpackSupport"
 #include "SymEigsSolver.h"
 #include "MatOp/SparseSymMatProd.h"
 #include "parser/parser.h"
@@ -112,13 +113,22 @@ int CQuadraticDifferential::compute()
             triplets.push_back(T(vid + nv * 2, eid, -dz[1] / dz.norm2()));
         }
     }
-    
+    ofstream ofs("A");
+    for (auto t : triplets)
+    {
+        ofs << t.row() << " " << t.col() << " " << t.value() << endl;
+    }
+    ofs.close();
+
     A.setFromTriplets(triplets.begin(), triplets.end());
     A.finalize();
 
     Eigen::SparseMatrix<double> AA = A.transpose()*A;
+    //Eigen::ArpackGeneralizedSelfAdjointEigenSolver<Eigen::SparseMatrix<double>> eigs(AA, kd, "SM");
+    //int nconv = eigs.getNbrConvergedEigenValues();
+
     Spectra::SparseSymMatProd<double> op(AA);
-    Spectra::SymEigsSolver< double, Spectra::SMALLEST_MAGN, Spectra::SparseSymMatProd<double>> eigs(&op, kd, 2 * kd);
+    Spectra::SymEigsSolver< double, Spectra::SMALLEST_ALGE, Spectra::SparseSymMatProd<double>> eigs(&op, kd, max(3 * kd, 20));
     eigs.init();
     int nconv = eigs.compute();
 
@@ -143,16 +153,32 @@ int CQuadraticDifferential::compute()
     return 0;
 }
 
+inline void hyper_circle_to_circle(complex<double> & c, double & r)
+{
+    double d = abs(c)*abs(c);
+    double f = (exp(r) - 1.0) / (exp(r) + 1.0);
+    f = f*f;
+    double a = 1.0 - f*d;
+    complex<double> b = 2.0*(f - 1.0)*c / a;
+    d = (d - f) / a;
+    c = -b / 2.0;
+    r = sqrt(abs(b)*abs(b) / 4.0 - d);
+}
 /*
  * for a triangle, given uv of two vertices, and edge length with third vertex,
  * compute uv of third vertex
  */
-inline CPoint2 embedVertex3(CPoint2 & p1, CPoint2 & p2, double l13, double l23)
+inline CPoint2 CQuadraticDifferential::embedVertex3(CPoint2 & p1, CPoint2 & p2, double l13, double l23)
 {
     complex<double> c1(p1[0], p1[1]);
     complex<double> c2(p2[0], p2[1]);
     double r1 = l13;
     double r2 = l23;
+    if (geometry == Hyperbolic)
+    {
+        hyper_circle_to_circle(c1, r1);
+        hyper_circle_to_circle(c2, r2);
+    }
     complex<double> dz = c2 - c1;
     double d = abs(dz);
     if (d > r1 + r2 || d < fabs(r2 - r1))
@@ -185,7 +211,9 @@ int CQuadraticDifferential::embedLocal(CVertex * v)
     CHalfEdge * he0 = v->most_clw_out_halfedge();
     CVertex * v1 = he0->target();
     CPoint2 p0(0,0);
-    CPoint2 p1(he0->edge()->length(), 0);
+    double l01 = he0->edge()->length();
+    CPoint2 p1(l01, 0);
+    if (geometry == Hyperbolic) p1[0] = (exp(l01) - 1.0) / (exp(l01) + 1.0);
     nei[v1->index()] = p1;
     CHalfEdge * he1 = he0;
     CHalfEdge * he2 = he0->ccw_rotate_about_source();
