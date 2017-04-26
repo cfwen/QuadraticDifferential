@@ -91,6 +91,7 @@ int CQuadraticDifferential::compute()
     int nv = mesh->num_vertices();
     int ne = mesh->num_edges();
     int kd = ne - 3 * nv;
+    if (kd == 0) kd = 2;
     Eigen::SparseMatrix<double> A(3 * nv, ne);
     typedef Eigen::Triplet<double> T;
     vector<T> triplets;
@@ -111,6 +112,7 @@ int CQuadraticDifferential::compute()
             triplets.push_back(T(vid + nv * 2, eid, -dz[1] / dz.norm2()));
         }
     }
+    
     A.setFromTriplets(triplets.begin(), triplets.end());
     A.finalize();
 
@@ -120,25 +122,22 @@ int CQuadraticDifferential::compute()
     eigs.init();
     int nconv = eigs.compute();
 
-    cout << "there should be " << ne - 3 * nv << " zero singular values" << endl;
+    cout << "there should be " << kd << " zero singular values" << endl;
     cout << "number of singular values converged is " << nconv << endl;
     
-    Eigen::VectorXd evalues = eigs.eigenvalues();
-    basis = eigs.eigenvectors();
-    //if (eigs.info() == Spectra::SUCCESSFUL)
-    //{
-    //    evalues = eigs.eigenvalues();
-    //    basis = eigs.eigenvectors();
-    //}
-
-    for (CEdge * e : mesh->edges())
+    if (nconv > 0)
     {
-        int id = e->index();
-        Eigen::RowVectorXd ev = basis.row(id);
-        e->q() = vector<double>(ev.data(), ev.data() + ev.size());
-        ostringstream oss;
-        oss << "q=(" << ev << ")";
-        e->string() = oss.str();
+        Eigen::VectorXd evalues = eigs.eigenvalues();
+        basis = eigs.eigenvectors();
+        for (CEdge * e : mesh->edges())
+        {
+            int id = e->index();
+            Eigen::RowVectorXd ev = basis.row(id);
+            e->q() = vector<double>(ev.data(), ev.data() + ev.size());
+            ostringstream oss;
+            oss << "q=(" << ev << ")";
+            e->string() = oss.str();
+        }
     }
 
     return 0;
@@ -181,29 +180,27 @@ inline CPoint2 embedVertex3(CPoint2 & p1, CPoint2 & p2, double l13, double l23)
  */
 int CQuadraticDifferential::embedLocal(CVertex * v)
 {
-    for (CVertex * v : mesh->vertices())
+    Nei & nei = v->nei();
+    // embed first vertex
+    CHalfEdge * he0 = v->most_clw_out_halfedge();
+    CVertex * v1 = he0->target();
+    CPoint2 p0(0,0);
+    CPoint2 p1(he0->edge()->length(), 0);
+    nei[v1->index()] = p1;
+    CHalfEdge * he1 = he0;
+    CHalfEdge * he2 = he0->ccw_rotate_about_source();
+
+    while (he2 && he2 != he0)
     {
-        Nei & nei = v->nei();
-        // embed first vertex
-        CHalfEdge * he0 = v->most_clw_out_halfedge();
-        CVertex * v0 = he0->target();
-        CPoint2 p0(0,0);
-        CPoint2 p1(he0->edge()->length(), 0);
-        nei[v0->index()] = p1;
-        CHalfEdge * he1 = he0;
-        CHalfEdge * he2 = he0->ccw_rotate_about_source();
-        while (he2 != he0)
-        {
-            CVertex * v2 = he2->target();
-            double l02 = he2->edge()->length();
-            double l12 = he1->next()->edge()->length();
-            p1 = embedVertex3(p0, p1, l02, l12);
-            nei[v2->index()] = p1;
-            he1 = he2;
-            he2 = he2->ccw_rotate_about_source();
-        }
-        
+        CVertex * v2 = he2->target();
+        double l02 = he2->edge()->length();
+        double l12 = he1->next()->edge()->length();
+        p1 = embedVertex3(p0, p1, l02, l12);
+        nei[v2->index()] = p1;
+        he1 = he2;
+        he2 = he2->ccw_rotate_about_source();
     }
+    
     return 0;
 }
 
