@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(QuadraticDifferential CXX Fortran)
+project(QuadraticDifferential C CXX Fortran)
 set (QuadraticDifferential_VERSION_MAJOR 0)
 set (QuadraticDifferential_VERSION_MINOR 1)
 
@@ -13,6 +13,7 @@ set(BLAS_LIBRARY_PATH "" CACHE PATH "")
 set(CMAKE_LIBRARY_PATH "${CMAKE_LIBRARY_PATH} ${BLAS_LIBRARY_PATH}")
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
+message("BLAS LIBRARIES ${BLAS_LIBRARIES}")
 
 # use openmp
 OPTION (USE_OpenMP "Use OpenMP" OFF)
@@ -41,8 +42,11 @@ if(${MSVC})
     set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} /libs:static")
 endif()
 
-if(${CMAKE_COMPILER_IS_GNUCXX})
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+endif()
+if("${CMAKE_Fortran_COMPILER_ID}" MATCHES "GNU")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lgfortran")
 endif()
 
 include_directories(third-party/MeshLib/core)
@@ -60,8 +64,8 @@ ExternalProject_Add(arpack
     CMAKE_CACHE_ARGS "-DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}" "-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}"
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ARPACK_ROOT} -DBUILD_SHARED_LIBS=OFF
         -DCMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS}
-        -DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}
-        -DBLA_STATIC=ON
+        #-DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}
+        #-DBLA_STATIC=ON
 )
 add_library(libarpack STATIC IMPORTED)
 add_dependencies(libarpack arpack)
@@ -84,6 +88,5 @@ set_property(TARGET QuadraticDifferential PROPERTY CXX_STANDARD 14)
 set_property(TARGET QuadraticDifferential PROPERTY CXX_STANDARD_REQUIRED ON)
 
 target_link_libraries(QuadraticDifferential libarpack ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-message(${CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES})
 
 install (TARGETS QuadraticDifferential DESTINATION ${PROJECT_ROOT}/bin)

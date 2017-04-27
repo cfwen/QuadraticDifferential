@@ -1,9 +1,11 @@
-// fix ARPACK names
-#define dsaupd_ DSAUPD
-#define dseupd_ DSEUPD
-#include "unsupported/Eigen/ArpackSupport"
 #include "QuadraticDifferential.h"
 #include "parser/parser.h"
+
+// fix ARPACK names
+//#define dsaupd_ DSAUPD
+//#define dseupd_ DSEUPD
+#include "unsupported/Eigen/ArpackSupport"
+
 
 CQuadraticDifferential::CQuadraticDifferential()
 {
