@@ -1,9 +1,11 @@
 #include "QuadraticDifferential.h"
 #include "parser/parser.h"
 
-// fix ARPACK names
-//#define dsaupd_ DSAUPD
-//#define dseupd_ DSEUPD
+// fix ARPACK names on win32
+#ifdef _WIN32
+#define dsaupd_ DSAUPD
+#define dseupd_ DSEUPD
+#endif
 #include "unsupported/Eigen/ArpackSupport"
 
 
