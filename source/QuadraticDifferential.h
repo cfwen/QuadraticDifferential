@@ -7,7 +7,6 @@
 #include <map>
 #include "Mesh/mesh.h"
 #include "Eigen/Eigen"
-//#include "armadillo"
 
 using namespace std;
 

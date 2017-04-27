@@ -1,12 +1,9 @@
 [submodule "third-party/MeshLib"]
 	path = third-party/MeshLib
 	url = https://github.com/cfwen/MeshLib.git
-[submodule "third-party/armadillo"]
-	path = third-party/armadillo
-	url = https://github.com/group-gu/armadillo-code.git
-[submodule "third-party/spectra"]
-	path = third-party/spectra
-	url = https://github.com/yixuan/spectra.git
 [submodule "third-party/eigen"]
 	path = third-party/eigen
 	url = https://github.com/group-gu/eigen.git
+[submodule "third-party/arpack-ng"]
+	path = third-party/arpack-ng
+	url = https://github.com/opencollab/arpack-ng.git

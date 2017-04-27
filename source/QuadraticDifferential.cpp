@@ -1,9 +1,9 @@
-#include "QuadraticDifferential.h"
+// fix ARPACK names
+#define dsaupd_ DSAUPD
+#define dseupd_ DSEUPD
 #include "unsupported/Eigen/ArpackSupport"
-#include "SymEigsSolver.h"
-#include "MatOp/SparseSymMatProd.h"
+#include "QuadraticDifferential.h"
 #include "parser/parser.h"
-
 
 CQuadraticDifferential::CQuadraticDifferential()
 {
@@ -124,17 +124,13 @@ int CQuadraticDifferential::compute()
     A.finalize();
 
     Eigen::SparseMatrix<double> AA = A.transpose()*A;
-    //Eigen::ArpackGeneralizedSelfAdjointEigenSolver<Eigen::SparseMatrix<double>> eigs(AA, kd, "SM");
-    //int nconv = eigs.getNbrConvergedEigenValues();
-
-    Spectra::SparseSymMatProd<double> op(AA);
-    Spectra::SymEigsSolver< double, Spectra::SMALLEST_ALGE, Spectra::SparseSymMatProd<double>> eigs(&op, kd, max(3 * kd, 20));
-    eigs.init();
-    int nconv = eigs.compute();
+    Eigen::ArpackGeneralizedSelfAdjointEigenSolver<Eigen::SparseMatrix<double>, Eigen::SparseLU<Eigen::SparseMatrix<double>>> eigs(AA, kd, "SM");
+    int nconv = eigs.getNbrConvergedEigenValues();
 
     cout << "there should be " << kd << " zero singular values" << endl;
     cout << "number of singular values converged is " << nconv << endl;
-    
+    cout << eigs.eigenvalues() << endl;
+
     if (nconv > 0)
     {
         Eigen::VectorXd evalues = eigs.eigenvalues();
